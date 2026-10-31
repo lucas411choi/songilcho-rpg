@@ -23,8 +23,8 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xaed9e9);
 scene.fog = new THREE.Fog(0xaed9e9, 24, 62);
 
-const camera = new THREE.PerspectiveCamera(43, 1, 0.1, 180);
-camera.position.set(4.8, 15.5, 12.8);
+const camera = new THREE.PerspectiveCamera(25, 1, 0.1, 180);
+camera.position.set(0, 21, 9);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
@@ -211,7 +211,7 @@ function makePlayer() {
   const mint = mat('mint', 0x9eb8ad);
   const hair = mat('hair', 0x17191d, .48);
   const glasses = new THREE.MeshStandardMaterial({ color: 0x17191d, roughness: .28, metalness: .22 });
-  const lens = new THREE.MeshStandardMaterial({ color: 0x8eafbc, roughness: .12, metalness: .12, transparent: true, opacity: .22 });
+  const lens = new THREE.MeshStandardMaterial({ color: 0x8eafbc, roughness: .12, metalness: .12, transparent: true, opacity: .22, side: THREE.DoubleSide });
 
   const leftLeg = new THREE.Group(); leftLeg.position.set(-.16, .48, 0); model.add(leftLeg);
   const rightLeg = new THREE.Group(); rightLeg.position.set(.16, .48, 0); model.add(rightLeg);
@@ -276,25 +276,42 @@ function makePlayer() {
   for (const side of [-1,1]) {
     ball(head,.028,.062,.018,mat('earinner',0xd89982),side*.375,-.02,-.045,12);
   }
-  // Hair cap plus separated, slightly wavy fringe locks.
-  ball(head, .385, .27, .345, hair, 0, .205, .025, 24);
-  ball(head, .345, .16, .30, hair, 0, .105, -.205, 20);
-  for (let i = 0; i < 17; i++) {
-    const x = -.34 + i * .0425;
-    const offset = Math.sin(i * 1.45) * .022;
-    const lock = ball(head, .035, .145 + (i % 4) * .014, .073, hair, x, -.035 + offset, -.286, 14);
-    lock.rotation.z = (i - 8) * .026;
+  // No hat: a natural, dense, slightly curly black hairstyle based on the reference photo.
+  // The hair volume sits on the crown and back, leaving the forehead and glasses visible.
+  ball(head, .375, .245, .305, hair, 0, .205, .075, 28);
+  ball(head, .345, .17, .275, hair, 0, .075, .175, 24);
+  // Small clustered curls across the crown create a softly wavy silhouette.
+  for (let row = 0; row < 4; row++) {
+    for (let col = -4; col <= 4; col++) {
+      const x = col * .075;
+      const z = -.13 + row * .105;
+      const nx = x / .38;
+      const nz = (z - .045) / .32;
+      if (nx * nx + nz * nz > 1.02) continue;
+      const lift = .345 + (1 - Math.min(1, nx * nx + nz * nz)) * .045;
+      const curl = ball(head, .047 + ((row + col + 8) % 3) * .006, .052, .047,
+        hair, x, lift + Math.sin(col * 1.2 + row) * .012, z, 12);
+      curl.rotation.z = Math.sin(col * .8 + row) * .22;
+    }
   }
-  // Fine curved locks and soft highlights create the dense, slightly wavy fringe.
-  const hairSheen = mat('hairSheen',0x34383d,.4);
-  for (let i = 0; i < 8; i++) {
-    const x = -.29 + i * .083;
-    tubeBetween(head,[x,.30,-.20],[x+.025,.12,-.335],.009,hairSheen,6);
+  // Light, irregular fringe tufts stop above the eyeglasses instead of hiding the face.
+  for (let i = 0; i < 13; i++) {
+    const x = -.30 + i * .05;
+    const wave = Math.sin(i * 1.17) * .018;
+    const tuft = ball(head, .035, .075 + (i % 3) * .008, .043, hair,
+      x, .095 + wave, -.235 - .025 * (1 - Math.abs(x) / .32), 12);
+    tuft.rotation.z = Math.sin(i * .9) * .16;
   }
-  // Side locks near the ears.
-  for (const side of [-1,1]) {
-    const lock = ball(head, .075, .18, .09, hair, side*.32, -.16, -.12, 12);
-    lock.rotation.z = -side*.12;
+  // A few fine highlights follow the curl direction without creating a hat-like brim.
+  const hairSheen = mat('hairSheen', 0x34383d, .4);
+  for (let i = 0; i < 9; i++) {
+    const x = -.30 + i * .075;
+    tubeBetween(head, [x, .39, -.13], [x + .018, .34, -.22], .007, hairSheen, 6);
+  }
+  // Tapered side locks around the ears.
+  for (const side of [-1, 1]) {
+    const lock = ball(head, .068, .145, .082, hair, side * .335, -.115, -.045, 14);
+    lock.rotation.z = -side * .10;
   }
   // Face details; eye scale intentionally restrained.
   // Subtle cheeks, eyebrows and a small rounded nose make the face less generic.
@@ -304,20 +321,22 @@ function makePlayer() {
   }
   ball(head,.045,.042,.045,skin,0,-.078,-.33,14);
   for (const side of [-1,1]) ball(head,.009,.007,.008,mat('nostril',0xb98270),side*.018,-.095,-.367,8);
-  for (const side of [-1,1]) {
-    ball(head, .034, .042, .025, mat('eye', 0x252329), side*.135, -.045, -.298, 12);
-    ball(head, .011, .013, .008, mat('eyehighlight', 0xffffff), side*.125, -.03, -.319, 8);
+  // Natural, regular-sized eyes with visible whites and dark pupils.
+  for (const side of [-1, 1]) {
+    ball(head, .050, .060, .026, mat('eyeWhite', 0xfffaf2), side * .137, -.045, -.302, 16);
+    ball(head, .023, .030, .018, mat('eye', 0x252329), side * .137, -.044, -.326, 14);
+    ball(head, .008, .010, .008, mat('eyehighlight', 0xffffff), side * .130, -.032, -.342, 8);
   }
   ball(head, .035, .025, .045, skin, 0, -.11, -.312, 10);
-  // Black round-rim glasses and bridge.
-  for (const side of [-1,1]) {
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(.125, .018, 9, 28), glasses);
-    rim.position.set(side*.137, -.035, -.325); head.add(rim);
-    const glass = new THREE.Mesh(new THREE.CircleGeometry(.108, 24), lens);
-    glass.position.set(side*.137, -.035, -.327); head.add(glass);
-    tubeBetween(head, [side*.245,-.025,-.305], [side*.37,-.005,-.17], .013, glasses, 8);
+  // Clearly readable black round-rim glasses, with transparent lenses and temples.
+  for (const side of [-1, 1]) {
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(.145, .020, 10, 32), glasses);
+    rim.position.set(side * .137, -.045, -.345); head.add(rim);
+    const glass = new THREE.Mesh(new THREE.CircleGeometry(.124, 28), lens);
+    glass.position.set(side * .137, -.045, -.338); head.add(glass);
+    tubeBetween(head, [side * .265, -.040, -.326], [side * .375, -.018, -.145], .014, glasses, 9);
   }
-  tubeBetween(head, [-.025,-.025,-.333], [.025,-.025,-.333], .014, glasses, 8);
+  tubeBetween(head, [-.025, -.040, -.353], [.025, -.040, -.353], .016, glasses, 9);
   // Small mouth.
   const mouth = new THREE.Mesh(new THREE.TorusGeometry(.045, .008, 6, 16, Math.PI), mat('mouth', 0x80564d));
   mouth.position.set(0, -.205, -.304); mouth.rotation.z = Math.PI; head.add(mouth);
@@ -507,36 +526,68 @@ function say(message, duration = 2.2) {
   toast.textContent = message; toastTimer = duration;
 }
 function makeFractionTexture(numerator, denominator) {
-  const canvas=document.createElement('canvas'); canvas.width=320; canvas.height=320;
-  const c=canvas.getContext('2d');
-  c.fillStyle='#fff8df'; c.beginPath(); c.roundRect(12,12,296,296,28); c.fill();
-  c.strokeStyle='#d49b42'; c.lineWidth=10; c.stroke();
-  c.textAlign='center'; c.textBaseline='middle'; c.fillStyle='#244a55';
-  c.font='900 104px sans-serif'; c.fillText(String(numerator),160,105);
-  c.fillStyle='#c18a39'; c.fillRect(70,154,180,10);
-  c.fillStyle='#244a55'; c.font='900 104px sans-serif'; c.fillText(String(denominator),160,224);
-  c.fillStyle='#6b7d76'; c.font='700 24px sans-serif'; c.fillText('분수 공격',160,278);
-  const texture=new THREE.CanvasTexture(canvas); texture.colorSpace=THREE.SRGBColorSpace; return texture;
+  // Transparent canvas: only the improper fraction itself is visible in flight.
+  const canvas = document.createElement('canvas');
+  canvas.width = 512; canvas.height = 512;
+  const c = canvas.getContext('2d');
+  c.clearRect(0, 0, canvas.width, canvas.height);
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.lineJoin = 'round';
+  c.shadowColor = 'rgba(255, 190, 54, .95)'; c.shadowBlur = 28;
+  c.lineWidth = 18; c.strokeStyle = '#163c52';
+  c.font = '900 174px sans-serif';
+  c.strokeText(String(numerator), 256, 145);
+  c.strokeText(String(denominator), 256, 365);
+  c.fillStyle = '#fffdf2';
+  c.fillText(String(numerator), 256, 145);
+  c.fillText(String(denominator), 256, 365);
+  c.shadowBlur = 13; c.strokeStyle = '#f7c85d'; c.lineWidth = 9;
+  c.beginPath(); c.moveTo(105, 255); c.lineTo(407, 255); c.stroke();
+  c.shadowBlur = 0; c.fillStyle = '#f8d978';
+  c.fillRect(111, 249, 290, 12);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
 }
 function fireFraction() {
-  // Random damage remains 5–10 HP. The visible improper fraction evaluates
-  // to exactly that integer, and its value is what damagePlayer receives.
-  const wantedDamage=5+Math.floor(Math.random()*6);
-  const denominator=[2,3,4][Math.floor(Math.random()*3)];
-  const numerator=wantedDamage*denominator;
-  const amount=numerator/denominator;
-  const start=enemy.root.position.clone().add(new THREE.Vector3(0,1.0,0));
-  const target=player.root.position.clone().add(new THREE.Vector3(0,.75,0));
-  const dir=target.sub(start).normalize();
-  const group=new THREE.Group(); group.position.copy(start);
-  const paper=new THREE.Mesh(new THREE.BoxGeometry(.46,.50,.045),new THREE.MeshStandardMaterial({color:0xfff5d9,roughness:.78}));
-  paper.castShadow=true; group.add(paper);
-  const rim=new THREE.Mesh(new THREE.BoxGeometry(.48,.52,.018),new THREE.MeshStandardMaterial({color:0xd5a04a,roughness:.72}));
-  rim.position.z=-.029; group.add(rim);
-  const label=new THREE.Mesh(new THREE.PlaneGeometry(.40,.44),new THREE.MeshBasicMaterial({map:makeFractionTexture(numerator,denominator),transparent:true,side:THREE.DoubleSide}));
-  label.position.z=-.041; group.add(label);
+  // Every projectile is an improper fraction whose exact value is 5–10 HP.
+  const amount = 5 + Math.floor(Math.random() * 6);
+  const denominator = [2, 3, 4, 5][Math.floor(Math.random() * 4)];
+  const numerator = amount * denominator;
+  const actualDamage = numerator / denominator;
+  const start = enemy.root.position.clone().add(new THREE.Vector3(0, 1.12, 0));
+  const target = player.root.position.clone().add(new THREE.Vector3(0, .85, 0));
+  const dir = target.sub(start).normalize();
+  const group = new THREE.Group();
+  group.position.copy(start);
+
+  // A small luminous core and halo make the fraction look like a magic projectile,
+  // not a flying workbook or a paper card.
+  const core = new THREE.Mesh(
+    new THREE.SphereGeometry(.19, 18, 14),
+    new THREE.MeshStandardMaterial({ color: 0xffd66c, emissive: 0xb87917, emissiveIntensity: 1.25, roughness: .24, metalness: .18 })
+  );
+  core.position.y = -.02; group.add(core);
+  const halo = new THREE.Mesh(
+    new THREE.TorusGeometry(.29, .035, 8, 28),
+    new THREE.MeshBasicMaterial({ color: 0xffd46a, transparent: true, opacity: .88 })
+  );
+  halo.rotation.x = Math.PI / 2; halo.position.y = -.02; group.add(halo);
+  const glow = new THREE.PointLight(0xffc85c, 1.2, 2.8);
+  glow.position.set(0, .05, 0); group.add(glow);
+
+  // The sprite has a transparent background and always faces the camera.
+  const fractionSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: makeFractionTexture(numerator, denominator),
+    transparent: true, depthWrite: false, depthTest: true
+  }));
+  fractionSprite.scale.set(1.02, 1.02, 1);
+  fractionSprite.position.set(0, .10, 0);
+  fractionSprite.renderOrder = 2;
+  group.add(fractionSprite);
+
   scene.add(group);
-  projectiles.push({group,dir,amount,numerator,denominator,speed:7.4,life:4});
+  projectiles.push({ group, dir, amount: actualDamage, numerator, denominator, speed: 8.0, life: 4 });
 }
 function makeSlashEffect() {
   const slash = new THREE.Mesh(new THREE.TorusGeometry(.72,.055,8,30,Math.PI*1.12), new THREE.MeshBasicMaterial({ color:0xe9fbff, transparent:true, opacity:.9 }));
@@ -548,6 +599,53 @@ function makeSlashEffect() {
   effects.push(effect);
 }
 const effects = [];
+function makeDoubleJumpEffect() {
+  const burst = new THREE.Group();
+  burst.position.set(player.root.position.x, player.root.position.y + .055, player.root.position.z);
+
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x8af5ef, transparent: true, opacity: .95, side: THREE.DoubleSide, depthWrite: false });
+  const ring = new THREE.Mesh(new THREE.RingGeometry(.22, .52, 40), ringMat);
+  ring.rotation.x = -Math.PI / 2;
+  burst.add(ring);
+  const innerMat = new THREE.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: .95, side: THREE.DoubleSide, depthWrite: false });
+  const innerRing = new THREE.Mesh(new THREE.RingGeometry(.10, .23, 32), innerMat);
+  innerRing.rotation.x = -Math.PI / 2;
+  innerRing.position.y = .012;
+  burst.add(innerRing);
+
+  const sparks = [];
+  for (let i = 0; i < 10; i++) {
+    const angle = (i / 10) * Math.PI * 2;
+    const sparkMat = new THREE.MeshBasicMaterial({ color: i % 2 ? 0xffdc83 : 0x9af8ed, transparent: true, opacity: 1 });
+    const spark = new THREE.Mesh(new THREE.SphereGeometry(.045, 8, 7), sparkMat);
+    spark.position.set(Math.cos(angle) * .30, .02, Math.sin(angle) * .30);
+    burst.add(spark);
+    sparks.push({ mesh: spark, velocity: new THREE.Vector3(Math.cos(angle) * 1.45, .9 + (i % 3) * .22, Math.sin(angle) * 1.45) });
+  }
+  scene.add(burst);
+  let age = 0;
+  const duration = .48;
+  effects.push({
+    mesh: burst,
+    update(dt) {
+      age += dt;
+      const t = Math.min(1, age / duration);
+      ring.scale.setScalar(.55 + t * 1.75);
+      innerRing.scale.setScalar(.75 + t * .95);
+      ringMat.opacity = 1 - t;
+      innerMat.opacity = 1 - t;
+      burst.position.y += dt * .22;
+      for (const item of sparks) {
+        item.mesh.position.addScaledVector(item.velocity, dt);
+        item.velocity.y -= 2.8 * dt;
+        item.mesh.material.opacity = 1 - t;
+        item.mesh.scale.setScalar(Math.max(.05, 1 - t * .8));
+      }
+      return age < duration;
+    }
+  });
+}
+
 function doAttack() {
   if (!started || ended || attackCooldown > 0) return;
   attackCooldown = .43; swingTime = .27;
@@ -587,7 +685,7 @@ function resetGame() {
   for (const e of effects) scene.remove(e.mesh);
   effects.length = 0;
   player.root.position.set(0,0,27);
-  player.model.rotation.set(0,0,0);
+  player.model.rotation.set(0, Math.PI, 0);
   enemy.root.position.set(0,0,-9);
   guardDialog.classList.add('hidden'); interactionPrompt.classList.add('hidden'); dialogueOpen=false;
   playerHP = MAX_PLAYER_HP; enemyHP = MAX_ENEMY_HP;
@@ -628,7 +726,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'Space' && !e.repeat && started && !ended && !dialogueOpen && jumpCount < 2) {
     jumpVelocity = jumpCount === 0 ? 6.2 : 5.8;
     jumpCount += 1; grounded = false;
-    if (jumpCount === 2) say('더블 점프!',.7);
+    if (jumpCount === 2) { makeDoubleJumpEffect(); say('더블 점프!',.7); }
   }
 });
 window.addEventListener('keyup', (e) => { keys[e.code] = false; });
@@ -712,12 +810,12 @@ function updateEffects(dt) {
   }
 }
 function updateCamera(dt) {
-  // High diagonal view: mostly behind the player, slightly offset to the right,
-  // similar to a MOBA / football broadcast camera rather than shoulder-level view.
-  const offset = new THREE.Vector3(4.8, 15.5, 12.8);
+  // Football broadcast / tactical camera: centered behind the character,
+  // elevated and steeply pitched, with a tighter lens so the hero stays large.
+  const offset = new THREE.Vector3(0, 21, 9);
   const desired = player.root.position.clone().add(offset);
-  camera.position.lerp(desired, 1 - Math.exp(-dt * 3.0));
-  const look = player.root.position.clone().add(new THREE.Vector3(0,.45,-2.0));
+  camera.position.lerp(desired, 1 - Math.exp(-dt * 4.2));
+  const look = player.root.position.clone().add(new THREE.Vector3(0, .55, -5.0));
   camera.lookAt(look);
 }
 function resize() {
