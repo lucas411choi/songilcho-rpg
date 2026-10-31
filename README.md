@@ -48,3 +48,13 @@
 4. GitHub에 커밋하면 Render가 자동 배포합니다.
 
 이 초안은 정적 웹게임입니다. Neon, 회원가입, 로그인, 계정 동기화 및 서버 기능은 포함하지 않습니다.
+
+
+## V4 character and camera update
+
+- Jaeseok rebuilt as a detailed, articulated Three.js character with no hat, dense wavy black hair, round black-rimmed glasses, natural-sized eyes, layered striped shirt fabric, dark loose trousers, blue socks and white trainers.
+- Full-body sword attack animation: shoulder, elbow, hand, torso, hips, head and both legs participate in the swing.
+- Orthographic 90-degree-rotated football broadcast / sideline camera; wider horizontal pitch framing with the player placed in the lower-middle and enlarged.
+- No server, Neon database, account sync or paid runtime is required for the Static Site prototype.
+
+The model is procedurally hand-built from Three.js geometry and materials based on the reference photo; it is not a photogrammetry scan or a photorealistic scan of the child.
