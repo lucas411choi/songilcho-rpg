@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <meta name="theme-color" content="#9dd2e4" />
+  <title>송일초 RPG</title>
+  <link rel="stylesheet" href="./style.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <main id="game-shell">
+    <div id="game-view" aria-label="송일초 RPG 3D 게임 화면"></div>
+
+    <header class="hud-top">
+      <div class="brand"><span class="brand-mark">S</span><div><strong>송일초 RPG</strong><small>등굣길을 되찾아라!</small></div></div>
+      <div class="status-card player-status">
+        <div class="status-heading"><span>재석</span><strong id="player-hp-text">100 / 100</strong></div>
+        <div class="bar"><i id="player-hp-bar" class="player-fill"></i></div>
+      </div>
+      <div class="status-card enemy-status">
+        <div class="status-heading"><span>6학년 1학기 기본 수학</span><strong id="enemy-hp-text">50 / 50</strong></div>
+        <div class="bar"><i id="enemy-hp-bar" class="enemy-fill"></i></div>
+      </div>
+    </header>
+
+    <aside class="controls-card">
+      <div class="controls-title">조작 방법</div>
+      <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>이동</span></div>
+      <div><kbd>SPACE</kbd><span>점프</span></div>
+      <div><kbd>마우스 클릭</kbd><span>검 휘두르기 · 10 데미지</span></div>
+    </aside>
+
+    <div id="toast" class="toast" aria-live="polite">문제집을 쓰러뜨리고 등굣길을 되찾자!</div>
+
+    <section id="start-screen" class="screen-layer">
+      <div class="dialog start-dialog">
+        <div class="eyebrow">SONGIL ELEMENTARY · 3D RPG</div>
+        <h1>송일초 RPG</h1>
+        <p class="story">평범하던 송일초 등굣길에<br><b>문제집들이 살아났다!</b><br>재석이와 함께 학교 가는 길을 되찾자.</p>
+        <div class="mini-rules">
+          <span>⚔️ 검 공격 <b>10</b></span>
+          <span>❤️ 내 체력 <b>100</b></span>
+          <span>📘 적 체력 <b>50</b></span>
+        </div>
+        <button id="start-button" class="primary-button">게임 시작</button>
+        <small>WASD 이동 · SPACE 점프 · 마우스 클릭 공격</small>
+      </div>
+    </section>
+
+    <section id="end-screen" class="screen-layer hidden">
+      <div class="dialog end-dialog">
+        <div id="end-icon" class="end-icon">🏆</div>
+        <h2 id="end-title">등굣길을 되찾았다!</h2>
+        <p id="end-message">첫 번째 문제집을 물리쳤어.</p>
+        <button id="restart-button" class="primary-button">다시 플레이</button>
+      </div>
+    </section>
+
+    <div class="bottom-note">초안 버전 · 저장/회원가입 기능 없음</div>
+  </main>
+  <script type="module" src="./game.js"></script>
+</body>
+</html>
