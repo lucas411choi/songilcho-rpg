@@ -13,13 +13,18 @@ const restartButton = document.querySelector('#restart-button');
 const endTitle = document.querySelector('#end-title');
 const endMessage = document.querySelector('#end-message');
 const endIcon = document.querySelector('#end-icon');
+const interactionPrompt = document.querySelector('#interaction-prompt');
+const guardDialog = document.querySelector('#guard-dialog');
+const guardDialogText = document.querySelector('#guard-dialog-text');
+const guardDialogNext = document.querySelector('#guard-dialog-next');
+const guardDialogClose = document.querySelector('#guard-dialog-close');
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xaed9e9);
 scene.fog = new THREE.Fog(0xaed9e9, 24, 62);
 
-const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 120);
-camera.position.set(7, 9, 15);
+const camera = new THREE.PerspectiveCamera(43, 1, 0.1, 180);
+camera.position.set(4.8, 15.5, 12.8);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.8));
@@ -36,8 +41,9 @@ const sun = new THREE.DirectionalLight(0xffedcf, 2.4);
 sun.position.set(-9, 16, 8);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
-sun.shadow.camera.left = -24; sun.shadow.camera.right = 24;
-sun.shadow.camera.top = 24; sun.shadow.camera.bottom = -24;
+sun.shadow.camera.left = -44; sun.shadow.camera.right = 44;
+sun.shadow.camera.top = 44; sun.shadow.camera.bottom = -44;
+sun.shadow.camera.updateProjectionMatrix();
 sun.shadow.bias = -0.0003;
 scene.add(sun);
 
@@ -91,25 +97,27 @@ function torus(parent, radius, tube, material, x, y, z, scaleX = 1, scaleZ = 1) 
   return mesh;
 }
 
-// --- School-road environment ---
-const grass = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), mat('grass', 0x65a85c));
+// --- Expanded school-road environment ---
+const grass = new THREE.Mesh(new THREE.PlaneGeometry(124, 112), mat('grass', 0x65a85c));
 grass.rotation.x = -Math.PI / 2; grass.position.y = -0.04; grass.receiveShadow = true; scene.add(grass);
-const path = new THREE.Mesh(new THREE.PlaneGeometry(9, 46), mat('path', 0xb8b9ad));
-path.rotation.x = -Math.PI / 2; path.position.set(0, 0.005, -3); path.receiveShadow = true; scene.add(path);
-// Road seams and small paving details.
-for (let z = -23; z <= 17; z += 4) {
-  box(scene, 8.8, .025, .055, mat('pathline', 0xa6aa9f), 0, .025, z - 3, { castShadow: false });
+const path = new THREE.Mesh(new THREE.PlaneGeometry(13, 86), mat('path', 0xb8b9ad));
+path.rotation.x = -Math.PI / 2; path.position.set(0, 0.005, -4); path.receiveShadow = true; scene.add(path);
+// Repeating paving joints and subtle center markings make the longer route readable.
+for (let z = -45; z <= 37; z += 4) {
+  box(scene, 12.8, .025, .055, mat('pathline', 0xa6aa9f), 0, .025, z, { castShadow: false });
 }
-for (const x of [-4.65, 4.65]) {
-  box(scene, .32, .16, 47, mat('curb', 0xe0dfce), x, .08, -3, { castShadow: false });
+for (const x of [-6.75, 6.75]) {
+  box(scene, .34, .16, 86, mat('curb', 0xe0dfce), x, .08, -4, { castShadow: false });
+  box(scene, .09, .045, 84, mat('curbpaint', 0xf4e8c9), x, .18, -4, { castShadow: false });
 }
 // School entrance gate and sign in the distance.
-for (const x of [-3.3, 3.3]) {
-  box(scene, .48, 3.2, .48, mat('gatewood', 0x9a7048), x, 1.6, -23, {});
-  box(scene, .58, .18, .58, mat('gatecap', 0xd8ad6b), x, 3.25, -23, {});
+for (const x of [-4.25, 4.25]) {
+  box(scene, .5, 3.35, .5, mat('gatewood', 0x9a7048), x, 1.675, -42, {});
+  box(scene, .64, .2, .64, mat('gatecap', 0xd8ad6b), x, 3.42, -42, {});
+  box(scene, .13, 2.9, .13, mat('gatedetail', 0xc08e54), x, 1.75, -41.72, {});
 }
-box(scene, 6.5, .55, .32, mat('signwood', 0x855d3b), 0, 3.0, -23, {});
-box(scene, 6.1, .42, .12, mat('signface', 0xf2d99c), 0, 3.0, -22.79, {});
+box(scene, 8.6, .58, .34, mat('signwood', 0x855d3b), 0, 3.12, -42, {});
+box(scene, 8.2, .44, .13, mat('signface', 0xf2d99c), 0, 3.12, -41.79, {});
 function makeTextTexture(lines, options = {}) {
   const canvas = document.createElement('canvas');
   canvas.width = options.width || 1024; canvas.height = options.height || 512;
@@ -126,38 +134,65 @@ function makeTextTexture(lines, options = {}) {
   const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
-const signTexture = makeTextTexture(['송일초 등굣길'], { background: '#f2d99c', color: '#315448', fontSize: 112, border: '#b1834b' });
-const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(5.95, .38), new THREE.MeshStandardMaterial({ map: signTexture, roughness: .8 }));
-signMesh.position.set(0, 3.0, -22.72); scene.add(signMesh);
-// A simple school building silhouette behind the gate.
-box(scene, 14, 5.5, 2.5, mat('schoolwall', 0xe8dfc9), 0, 2.7, -25.2, {});
-box(scene, 14.2, .45, 2.7, mat('schoolroof', 0x648d91), 0, 5.55, -25.2, {});
-for (let x = -5.3; x <= 5.31; x += 2.1) {
-  box(scene, 1.15, 1.3, .08, mat('window', 0x94c7d2, .25), x, 3.5, -23.9, { castShadow: false });
-  box(scene, 1.2, .08, .1, mat('windowframe', 0xf7f0dc), x, 3.5, -23.84, { castShadow: false });
+const signTexture = makeTextTexture(['송일초 등굣길'], { background: '#f2d99c', color: '#315448', fontSize: 112, border: '#b1834b', width: 1200, height: 180 });
+const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(8.05, .38), new THREE.MeshStandardMaterial({ map: signTexture, roughness: .8 }));
+signMesh.position.set(0, 3.12, -41.70); scene.add(signMesh);
+// School building behind the gate.
+box(scene, 18, 5.8, 3.0, mat('schoolwall', 0xe8dfc9), 0, 2.8, -44.4, {});
+box(scene, 18.3, .48, 3.2, mat('schoolroof', 0x648d91), 0, 5.82, -44.4, {});
+for (let x = -7; x <= 7.01; x += 2.3) {
+  box(scene, 1.25, 1.45, .08, mat('window', 0x94c7d2, .25), x, 3.62, -42.9, { castShadow: false });
+  box(scene, 1.31, .09, .1, mat('windowframe', 0xf7f0dc), x, 3.62, -42.84, { castShadow: false });
+  box(scene, .08, 1.5, .1, mat('windowframe', 0xf7f0dc), x, 3.62, -42.83, { castShadow: false });
 }
-// Trees and hedges along the route.
+// Trees and hedges on both sides of the expanded route.
 function tree(x, z, size = 1) {
   const g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(size); scene.add(g);
   cylinder(g, .15, .23, 1.35, mat('bark', 0x79563d), 0, .68, 0, 9);
   ball(g, .82, .9, .8, mat('leaf1', 0x4f8e57), 0, 1.72, 0, 14);
   ball(g, .56, .63, .6, mat('leaf2', 0x6ba965), -.32, 1.95, -.12, 14);
   ball(g, .55, .65, .55, mat('leaf3', 0x3f7b4c), .35, 1.9, .12, 14);
+  ball(g, .28, .30, .27, mat('leaf2', 0x78b66d), .1, 2.35, .02, 12);
 }
-for (const [x,z,s] of [[-8,-19,1.1],[8,-20,1.2],[-8,-9,1],[8,-10,1.05],[-8,3,1.1],[8,5,1.15],[-7,15,.9],[7,16,.95]]) tree(x,z,s);
+for (const [x,z,s] of [
+  [-10,-36,1.1],[10,-37,1.2],[-10,-25,1],[10,-25,1.05],[-10,-12,1.1],[10,-11,1.15],
+  [-10,2,1.0],[10,2,1.05],[-11,15,1.1],[11,15,1.15],[-10,28,.95],[10,30,1.0]
+]) tree(x,z,s);
 for (const side of [-1,1]) {
-  for (let z = -18; z < 15; z += 2.2) {
-    const hedge = box(scene, 1.2, .55, 1.7, mat('hedge', 0x4e874f), side * 6.1, .28, z, {});
+  for (let z = -37; z < 31; z += 2.5) {
+    if (side === 1 && z > 15 && z < 24) continue; // keep the guardhouse frontage clear
+    const hedge = box(scene, 1.25, .58, 1.85, mat('hedge', 0x4e874f), side * 8.15, .29, z, {});
     hedge.rotation.y = (z % 2) * .05;
   }
 }
-// Tiny flowers on the grass for a friendly Animal-Crossing-like mood.
-for (let i = 0; i < 24; i++) {
-  const x = (i % 2 ? 1 : -1) * (5.5 + (i % 4) * .65);
-  const z = -17 + Math.floor(i / 2) * 2.7;
+// Small flower beds and roadside stones.
+for (let i = 0; i < 44; i++) {
+  const side = i % 2 ? 1 : -1;
+  const x = side * (7.5 + (i % 3) * .7);
+  const z = -35 + Math.floor(i / 2) * 3.1;
   cylinder(scene, .025, .03, .16, mat('flowerstem', 0x387d48), x, .08, z, 6);
   ball(scene, .07, .07, .07, mat('flower', i % 3 === 0 ? 0xf5df75 : 0xf6f0ee), x, .18, z, 8);
 }
+// A little spur path leads to the school security booth.
+const boothPath = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 8), mat('path', 0xb8b9ad));
+boothPath.rotation.x = -Math.PI/2; boothPath.position.set(8.1, .012, 20); boothPath.receiveShadow = true; scene.add(boothPath);
+// Security booth: windows, roof trim, door, sign and a bench.
+const booth = new THREE.Group(); booth.position.set(9.15, 0, 19.5); scene.add(booth);
+box(booth, 3.0, 2.55, 2.65, mat('boothwall', 0xe8e4d3), 0, 1.28, 0, {});
+box(booth, 3.16, .22, 2.82, mat('boothroof', 0x315c67), 0, 2.63, 0, {});
+box(booth, 3.22, .09, 2.88, mat('boothtrim', 0xd7b46d), 0, 2.48, 0, {});
+// Front window faces the road (negative Z).
+box(booth, 1.72, .92, .06, mat('boothglass', 0x8fc5d0, .22), -.22, 1.73, -1.34, { castShadow: false });
+for (const x of [-1.12,.68]) box(booth,.09,1.05,.10,mat('boothframe',0xf4f0df),x,1.73,-1.39,{castShadow:false});
+box(booth,1.9,.09,.10,mat('boothframe',0xf4f0df),-.22,1.73,-1.39,{castShadow:false});
+box(booth,.09,1.02,.10,mat('boothframe',0xf4f0df),-.22,1.73,-1.40,{castShadow:false});
+box(booth,.72,1.65,.08,mat('boothdoor',0x9d7652),1.02,.85,-1.36,{});
+box(booth,.07,.07,.08,mat('doorknob',0xd9bd75,.35,.5),.78,.88,-1.42,{});
+const boothSignTex = makeTextTexture(['경비실'], { background:'#f6e9c4', color:'#315448', fontSize:120, width:420, height:150, border:'#b58b52' });
+const boothSign = new THREE.Mesh(new THREE.PlaneGeometry(1.35,.48),new THREE.MeshStandardMaterial({map:boothSignTex,roughness:.8}));
+boothSign.position.set(0,2.28,-1.43); booth.add(boothSign);
+box(scene,1.7,.22,.55,mat('benchwood',0x9c7048),7.0,.45,22.1,{});
+for (const x of [6.35,7.65]) box(scene,.12,.55,.12,mat('benchlegs',0x4e5150),x,.23,22.1,{});
 
 // --- Jaeseok: a small, stylized 3D avatar based on the provided photo ---
 function makePlayer() {
@@ -195,14 +230,26 @@ function makePlayer() {
   const torso = new THREE.Group(); torso.position.y = .77; model.add(torso);
   ball(torso, .34, .34, .23, shirt, 0, 0, 0, 20);
   // Hem and horizontal stripes around the rounded shirt.
-  for (let i = 0; i < 5; i++) {
-    const y = -.23 + i * .105;
+  for (let i = 0; i < 7; i++) {
+    const y = -.25 + i * .083;
     const ring = torus(torso, .285 - Math.abs(y) * .1, .018, stripe, 0, y, 0, 1.08, .72);
     ring.material = stripe;
   }
   torus(torso, .235, .038, mint, 0, .285, 0, 1, .78);
-  // Chest patch reminiscent of the small clothing label in the photo.
-  box(torso, .2, .085, .018, mat('patch', 0x9e8055), .07, -.03, -.232, { castShadow: false });
+  // Small stitched chest label, similar in scale to the reference shirt patch.
+  box(torso, .22, .10, .022, mat('patch', 0x9e8055), .07, -.03, -.239, { castShadow: false });
+  const patchCanvas=document.createElement('canvas'); patchCanvas.width=256; patchCanvas.height=96;
+  const pc=patchCanvas.getContext('2d'); pc.fillStyle='#9e8055'; pc.fillRect(0,0,256,96);
+  pc.strokeStyle='#dfc99a'; pc.lineWidth=5; pc.strokeRect(7,7,242,82);
+  pc.fillStyle='#fff0ca'; pc.font='bold 43px sans-serif'; pc.textAlign='center'; pc.textBaseline='middle'; pc.fillText('OUTDOOR',128,49);
+  const patchTexture=new THREE.CanvasTexture(patchCanvas); patchTexture.colorSpace=THREE.SRGBColorSpace;
+  const patchPrint=new THREE.Mesh(new THREE.PlaneGeometry(.19,.071),new THREE.MeshBasicMaterial({map:patchTexture}));
+  patchPrint.position.set(.07,-.03,-.252); torso.add(patchPrint);
+  // Fine seam-like shirt bands.
+  for (let i=0;i<3;i++) {
+    const y=-.18+i*.105;
+    torus(torso,.292-Math.abs(y)*.10,.008,mat('shirtstitch',0xd8d9d2),0,y,0,1.08,.72);
+  }
 
   const leftArm = new THREE.Group(); leftArm.position.set(-.31, .98, 0); model.add(leftArm);
   const rightArm = new THREE.Group(); rightArm.position.set(.31, .98, 0); model.add(rightArm);
@@ -214,24 +261,35 @@ function makePlayer() {
     // Pale cuffs stand out on the striped long sleeves.
     tubeBetween(arm, [side*.12,-.40,-.07], wrist, .112, mint, 12);
     ball(arm, .105, .105, .1, skin, side*.1, -.53, -.12, 12);
-    // Narrow light sleeve bands.
+    // Narrow light sleeve bands and subtle cuff stitching.
     tubeBetween(arm, [side*.07,-.18,-.01], [side*.10,-.205,-.015], .127, stripe, 10);
+    tubeBetween(arm,[side*.10,-.43,-.07],[side*.105,-.455,-.08],.113,mat('cuffstitch',0xdce3df),9);
   }
 
   // Neck, head and small Animal-Crossing-inspired features (smaller eyes).
   cylinder(model, .105, .12, .16, skin, 0, 1.05, 0, 12);
   const head = new THREE.Group(); head.position.set(0, 1.30, -.005); model.add(head);
-  ball(head, .365, .385, .315, skin, 0, 0, 0, 24);
-  ball(head, .07, .105, .055, skin, -.36, -.02, 0, 12);
-  ball(head, .07, .105, .055, skin, .36, -.02, 0, 12);
+  ball(head, .365, .385, .315, skin, 0, 0, 0, 32);
+  ball(head, .075, .11, .06, skin, -.36, -.02, 0, 16);
+  ball(head, .075, .11, .06, skin, .36, -.02, 0, 16);
+  // Ear folds add a little more natural detail without losing the toy-like style.
+  for (const side of [-1,1]) {
+    ball(head,.028,.062,.018,mat('earinner',0xd89982),side*.375,-.02,-.045,12);
+  }
   // Hair cap plus separated, slightly wavy fringe locks.
   ball(head, .385, .27, .345, hair, 0, .205, .025, 24);
   ball(head, .345, .16, .30, hair, 0, .105, -.205, 20);
-  for (let i = 0; i < 11; i++) {
-    const x = -.32 + i * .064;
-    const offset = Math.sin(i * 1.7) * .018;
-    const lock = ball(head, .046, .145 + (i % 3) * .012, .075, hair, x, -.035 + offset, -.285, 12);
-    lock.rotation.z = (i - 5) * .035;
+  for (let i = 0; i < 17; i++) {
+    const x = -.34 + i * .0425;
+    const offset = Math.sin(i * 1.45) * .022;
+    const lock = ball(head, .035, .145 + (i % 4) * .014, .073, hair, x, -.035 + offset, -.286, 14);
+    lock.rotation.z = (i - 8) * .026;
+  }
+  // Fine curved locks and soft highlights create the dense, slightly wavy fringe.
+  const hairSheen = mat('hairSheen',0x34383d,.4);
+  for (let i = 0; i < 8; i++) {
+    const x = -.29 + i * .083;
+    tubeBetween(head,[x,.30,-.20],[x+.025,.12,-.335],.009,hairSheen,6);
   }
   // Side locks near the ears.
   for (const side of [-1,1]) {
@@ -239,6 +297,13 @@ function makePlayer() {
     lock.rotation.z = -side*.12;
   }
   // Face details; eye scale intentionally restrained.
+  // Subtle cheeks, eyebrows and a small rounded nose make the face less generic.
+  for (const side of [-1,1]) {
+    ball(head,.072,.035,.018,mat('cheek',0xe9a99a),side*.235,-.115,-.275,12);
+    tubeBetween(head,[side*.10,.025,-.30],[side*.19,.04,-.30],.012,mat('eyebrow',0x453b37),7);
+  }
+  ball(head,.045,.042,.045,skin,0,-.078,-.33,14);
+  for (const side of [-1,1]) ball(head,.009,.007,.008,mat('nostril',0xb98270),side*.018,-.095,-.367,8);
   for (const side of [-1,1]) {
     ball(head, .034, .042, .025, mat('eye', 0x252329), side*.135, -.045, -.298, 12);
     ball(head, .011, .013, .008, mat('eyehighlight', 0xffffff), side*.125, -.03, -.319, 8);
@@ -278,55 +343,128 @@ const player = makePlayer();
 
 // --- The first enemy: an original, easy 6th-grade first-semester math workbook ---
 function makeWorkbook() {
-  const root = new THREE.Group(); root.position.set(0, 0, -.8); scene.add(root);
+  const root = new THREE.Group(); root.position.set(0, 0, -9); scene.add(root);
   const model = new THREE.Group(); root.add(model);
-  const coverMat = mat('bookcover', 0x236a78, .64);
-  const pagesMat = mat('bookpages', 0xf3eedf, .9);
+  const coverMat = mat('bookcover', 0x246b79, .52);
+  const pagesMat = mat('bookpages', 0xf7f0df, .94);
   const spineMat = mat('bookspine', 0x164c5a, .7);
-  box(model, 1.42, 1.78, .31, pagesMat, 0, .95, 0, {});
-  box(model, 1.48, 1.84, .12, spineMat, 0, .95, -.205, {});
-  box(model, .09, 1.77, .34, mat('bookedge', 0xf0b85b), -.69, .95, -.01, {});
-  const coverCanvas = document.createElement('canvas'); coverCanvas.width = 768; coverCanvas.height = 1024;
-  const cx = coverCanvas.getContext('2d');
-  const grad = cx.createLinearGradient(0, 0, 768, 1024); grad.addColorStop(0, '#3d94a1'); grad.addColorStop(1, '#175469');
-  cx.fillStyle = grad; cx.fillRect(0,0,768,1024);
-  cx.fillStyle = '#f3d47a'; cx.beginPath(); cx.roundRect(42,42,684,940,32); cx.fill();
-  cx.fillStyle = '#247584'; cx.beginPath(); cx.roundRect(58,58,652,908,25); cx.fill();
-  cx.fillStyle = '#eaf4e8'; cx.font = '900 44px sans-serif'; cx.textAlign = 'center'; cx.fillText('초등 수학', 384, 150);
-  cx.fillStyle = '#fff4c8'; cx.font = '900 118px sans-serif'; cx.fillText('6-1', 384, 315);
-  cx.fillStyle = '#ffffff'; cx.font = '900 82px sans-serif'; cx.fillText('기본', 384, 430);
-  cx.fillStyle = '#f8d879'; cx.beginPath(); cx.roundRect(138,500,492,72,24); cx.fill();
-  cx.fillStyle = '#244f58'; cx.font = '700 34px sans-serif'; cx.fillText('개념부터 차근차근', 384, 548);
-  cx.fillStyle = '#eaf4e8'; cx.font = '700 32px sans-serif'; cx.fillText('분수 · 소수 · 비와 비율', 384, 665);
-  // Original fraction doodles, not copied from a published cover.
-  cx.strokeStyle = '#f8d879'; cx.lineWidth = 13; cx.beginPath(); cx.arc(250,790,62,0,Math.PI*2); cx.stroke();
-  cx.beginPath(); cx.moveTo(218,790); cx.lineTo(282,790); cx.stroke();
-  cx.fillStyle = '#ffffff'; cx.font = '900 42px sans-serif'; cx.fillText('기본 문제', 510, 812);
-  cx.fillStyle = '#d4edf0'; cx.font = '26px sans-serif'; cx.fillText('SONGIL STUDY MONSTER', 384, 908);
-  const coverTexture = new THREE.CanvasTexture(coverCanvas); coverTexture.colorSpace = THREE.SRGBColorSpace;
-  const cover = new THREE.Mesh(new THREE.PlaneGeometry(1.40, 1.76), new THREE.MeshStandardMaterial({ map: coverTexture, roughness: .78 }));
-  cover.position.set(0, .95, -.273); model.add(cover);
-  // Eyes above the title; deliberately cute rather than scary.
-  for (const x of [-.28,.28]) {
-    ball(model, .105, .13, .055, mat('bookeyeWhite', 0xfffaf0), x, 1.35, -.34, 14);
-    ball(model, .045, .065, .025, mat('bookeyeDark', 0x25343b), x, 1.34, -.39, 12);
-    ball(model, .014, .018, .01, mat('bookeyeShine', 0xffffff), x-.012, 1.37, -.414, 8);
-    tubeBetween(model, [x-.1,1.52,-.34], [x+.06,1.55,-.34], .018, mat('bookbrow', 0x153c49), 7);
+  // Thick workbook block with a rounded-looking layered page edge.
+  box(model, 1.54, 1.94, .35, pagesMat, 0, .99, 0, {});
+  box(model, 1.59, 1.99, .13, coverMat, 0, .99, -.235, {});
+  box(model, .115, 1.91, .38, spineMat, -.75, .99, -.015, {});
+  box(model, .075, 1.92, .37, mat('bookgoldedge',0xe3b45e,.55), .77, .99, -.005, {});
+  // Tiny page grooves on the exposed right edge.
+  for(let i=0;i<13;i++) box(model,.012,1.82,.018,mat('pagegroove',0xd8d0bd),.838,.99,-.10+i*.016,{castShadow:false});
+  // Top page lines and a subtle paper stack visible along the upper edge.
+  for(let i=0;i<8;i++) box(model,1.42,.012,.018,mat('pageline',0xd8d0bd),.02,1.985,-.13+i*.034,{castShadow:false});
+  // Front cover artwork is original, using the visual language of school workbooks
+  // (grade badge, subject title, unit list and a clean publisher strip) without copying a publisher's trade dress.
+  const coverCanvas=document.createElement('canvas'); coverCanvas.width=900; coverCanvas.height=1200;
+  const cx=coverCanvas.getContext('2d');
+  const grad=cx.createLinearGradient(0,0,900,1200); grad.addColorStop(0,'#2d8792'); grad.addColorStop(.55,'#1e6879'); grad.addColorStop(1,'#174d68');
+  cx.fillStyle=grad; cx.fillRect(0,0,900,1200);
+  cx.fillStyle='#f8f2df'; cx.beginPath(); cx.roundRect(30,28,840,1144,36); cx.fill();
+  cx.fillStyle='#247887'; cx.beginPath(); cx.roundRect(48,46,804,1108,28); cx.fill();
+  // Header strip and series identity.
+  cx.fillStyle='#f4d27d'; cx.beginPath(); cx.roundRect(82,82,736,112,22); cx.fill();
+  cx.fillStyle='#28515a'; cx.font='800 43px sans-serif'; cx.textAlign='left'; cx.fillText('SONGIL  ·  초등 학습 시리즈',112,150);
+  cx.textAlign='right'; cx.font='700 27px sans-serif'; cx.fillText('2026 개정 학습형',785,150);
+  // Grade / semester block.
+  cx.fillStyle='#f5f7ef'; cx.beginPath(); cx.roundRect(105,242,690,220,28); cx.fill();
+  cx.fillStyle='#245f6a'; cx.font='800 44px sans-serif'; cx.textAlign='center'; cx.fillText('초등학교 6학년  1학기',450,305);
+  cx.fillStyle='#153f51'; cx.font='900 114px sans-serif'; cx.fillText('기본 수학',450,420);
+  // Accent ribbon.
+  cx.fillStyle='#f4cb69'; cx.beginPath(); cx.roundRect(165,500,570,82,24); cx.fill();
+  cx.fillStyle='#28515a'; cx.font='800 39px sans-serif'; cx.fillText('개념 정리  +  기본 유형',450,553);
+  // Geometric learning motifs: fraction circles, a number line and clean grid cards.
+  cx.fillStyle='#eaf3e7'; cx.beginPath(); cx.roundRect(105,635,690,300,28); cx.fill();
+  cx.fillStyle='#235c69'; cx.font='800 35px sans-serif'; cx.textAlign='left'; cx.fillText('이번 학기 핵심 단원',145,695);
+  const items=['① 분수의 나눗셈','② 소수의 나눗셈','③ 비와 비율','④ 자료의 정리'];
+  cx.font='700 29px sans-serif'; cx.fillStyle='#355f61';
+  items.forEach((t,i)=>cx.fillText(t,150,765+i*43));
+  cx.strokeStyle='#e0b65f'; cx.lineWidth=14; cx.beginPath(); cx.arc(650,790,88,0,Math.PI*2); cx.stroke();
+  cx.beginPath(); cx.moveTo(650,702); cx.lineTo(650,878); cx.stroke();
+  cx.beginPath(); cx.moveTo(562,790); cx.lineTo(738,790); cx.stroke();
+  cx.fillStyle='#f5d27d'; cx.beginPath(); cx.roundRect(110,980,680,95,24); cx.fill();
+  cx.fillStyle='#284f59'; cx.textAlign='center'; cx.font='800 37px sans-serif'; cx.fillText('개념 확인  ·  기본 문제  ·  단원 평가',450,1040);
+  cx.fillStyle='#e9f5f0'; cx.font='700 24px sans-serif'; cx.fillText('송일 학습연구소  |  기본편',450,1118);
+  const coverTexture=new THREE.CanvasTexture(coverCanvas); coverTexture.colorSpace=THREE.SRGBColorSpace;
+  const cover=new THREE.Mesh(new THREE.PlaneGeometry(1.52,1.90),new THREE.MeshStandardMaterial({map:coverTexture,roughness:.68,metalness:.02}));
+  cover.position.set(0,.99,-.307); model.add(cover);
+  // Laminated cover highlights.
+  const gloss=new THREE.Mesh(new THREE.PlaneGeometry(1.48,1.86),new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.055,side:THREE.DoubleSide}));
+  gloss.position.set(0,.99,-.312); model.add(gloss);
+  // Spine title panel.
+  const spineTex=makeTextTexture(['6-1','기본 수학'],{background:'#164c5a',color:'#fff2cc',fontSize:92,width:420,height:900});
+  const spinePrint=new THREE.Mesh(new THREE.PlaneGeometry(.09,1.55),new THREE.MeshBasicMaterial({map:spineTex}));
+  spinePrint.position.set(-.812,.99,-.02); spinePrint.rotation.y=-Math.PI/2; model.add(spinePrint);
+  // Small character face sits above the main title and does not obscure the subject name.
+  for(const x of [-.30,.30]) {
+    ball(model,.078,.095,.045,mat('bookeyeWhite',0xfffaf0),x,1.72,-.34,18);
+    ball(model,.033,.046,.025,mat('bookeyeDark',0x25343b),x,1.71,-.381,14);
+    ball(model,.011,.014,.009,mat('bookeyeShine',0xffffff),x-.009,1.735,-.403,8);
+    tubeBetween(model,[x-.07,1.84,-.335],[x+.055,1.86,-.335],.012,mat('bookbrow',0x153c49),7);
   }
-  const mouth = new THREE.Mesh(new THREE.TorusGeometry(.065,.012,7,18,Math.PI), mat('bookmouth',0x163d46));
-  mouth.position.set(0,1.08,-.345); mouth.rotation.z = Math.PI; model.add(mouth);
-  // Little arms and shoes.
-  for (const side of [-1,1]) {
-    tubeBetween(model, [side*.72,1.03,0], [side*.91,.78,-.03], .09, mat('bookarm',0x27788a), 10);
-    ball(model,.105,.095,.09,mat('bookhand',0xf2cf86),side*.91,.77,-.03,10);
-    cylinder(model,.095,.11,.3,mat('bookleg',0x1e5664),side*.34,.12,0,10);
-    ball(model,.16,.09,.22,mat('bookshoe',0xe2bd75),side*.34,.055,-.08,10);
+  const mouth=new THREE.Mesh(new THREE.TorusGeometry(.052,.009,7,18,Math.PI),mat('bookmouth',0x163d46));
+  mouth.position.set(0,1.56,-.348); mouth.rotation.z=Math.PI; model.add(mouth);
+  // Page marker tabs along the side.
+  for(let i=0;i<3;i++) box(model,.15,.10,.035,mat('booktab'+i,[0xf0c96e,0xe8f0cf,0xe7a77f][i]),.84,1.56-i*.20,.02,{});
+  // Little arms with cuffs and tiny shoes.
+  for(const side of [-1,1]) {
+    tubeBetween(model,[side*.77,1.07,0],[side*.98,.84,-.04],.085,mat('bookarm',0x27788a),12);
+    tubeBetween(model,[side*.93,.89,-.035],[side*.98,.84,-.04],.09,mat('bookcuff',0xf2d78e),10);
+    ball(model,.105,.095,.09,mat('bookhand',0xf2cf86),side*.99,.82,-.05,12);
+    cylinder(model,.09,.11,.29,mat('bookleg',0x1e5664),side*.35,.12,0,12);
+    ball(model,.17,.09,.23,mat('bookshoe',0xe2bd75),side*.35,.055,-.09,12);
   }
-  const shadow = new THREE.Mesh(new THREE.CircleGeometry(.76, 28), new THREE.MeshBasicMaterial({ color:0x1b2930, transparent:true, opacity:.24, depthWrite:false }));
+  const shadow=new THREE.Mesh(new THREE.CircleGeometry(.82,32),new THREE.MeshBasicMaterial({color:0x1b2930,transparent:true,opacity:.24,depthWrite:false}));
   shadow.rotation.x=-Math.PI/2; shadow.position.y=.012; root.add(shadow);
-  return { root, model, shadow };
+  return {root,model,shadow};
 }
 const enemy = makeWorkbook();
+
+// --- Security guard NPC ---
+function makeGuardNPC() {
+  const root=new THREE.Group(); root.position.set(5.8,0,19.8); scene.add(root);
+  const model=new THREE.Group(); root.add(model);
+  const uniform=mat('guardUniform',0x315b66,.78);
+  const trim=mat('guardTrim',0xd9c58c,.65);
+  const skin=mat('guardSkin',0xe5b999,.85);
+  const dark=mat('guardDark',0x28363b,.7);
+  // Short legs, uniform jacket and belt.
+  for(const side of [-1,1]) {
+    cylinder(model,.105,.12,.42,mat('guardPants',0x303d43),side*.13,.27,0,12);
+    ball(model,.14,.07,.22,mat('guardShoes',0x30363a),side*.13,.055,-.07,12);
+  }
+  ball(model,.29,.34,.19,uniform,0,.78,0,20);
+  box(model,.34,.07,.025,trim,0,.67,-.185,{});
+  box(model,.09,.16,.025,trim,0,.82,-.19,{});
+  box(model,.13,.11,.025,mat('guardBadge',0xe8cc80),.13,.92,-.20,{});
+  for(const side of [-1,1]) {
+    tubeBetween(model,[side*.27,.98,0],[side*.34,.65,-.03],.09,uniform,12);
+    ball(model,.09,.09,.09,skin,side*.34,.62,-.04,12);
+  }
+  cylinder(model,.09,.105,.15,skin,0,1.08,0,14);
+  const head=new THREE.Group(); head.position.set(0,1.34,0); model.add(head);
+  ball(head,.27,.30,.245,skin,0,0,0,24);
+  // Grey side hair, brows, eyes, nose and a neat moustache.
+  for(const side of [-1,1]) {
+    ball(head,.09,.12,.10,mat('guardGreyHair',0x777b78),side*.23,.12,.02,12);
+    ball(head,.018,.024,.015,dark,side*.09,-.015,-.235,10);
+    tubeBetween(head,[side*.06,.055,-.235],[side*.13,.06,-.235],.012,mat('guardBrow',0x55504b),7);
+  }
+  ball(head,.035,.045,.035,skin,0,-.055,-.245,12);
+  ball(head,.08,.032,.018,mat('guardMustache',0x77736d),0,-.12,-.224,12);
+  // Navy security cap with a gold badge and brim.
+  ball(head,.285,.13,.26,mat('guardCap',0x244a58),0,.245,0,18);
+  box(head,.33,.045,.16,mat('guardBrim',0x203f4b),0,.19,-.18,{});
+  box(head,.075,.07,.018,mat('guardCapBadge',0xe4c276,.45,.25),0,.255,-.255,{});
+  model.scale.setScalar(.92);
+  // Face the path and player spawn.
+  root.rotation.y=Math.PI;
+  return {root,model,head};
+}
+const guardNPC=makeGuardNPC();
 
 // --- Combat state ---
 const MAX_PLAYER_HP = 100;
@@ -342,6 +480,16 @@ let attackCooldown = 0;
 let swingTime = 0;
 let jumpVelocity = 0;
 let grounded = true;
+let jumpCount = 0;
+let dialogueOpen = false;
+let dialogueIndex = 0;
+const guardLines = [
+  '어라? 문제집들이 살아나서 등굣길을 막고 있구나!',
+  '저 앞의 문제집은 6학년 1학기 기본 수학이야. 표지에 적힌 이름을 잘 보고 조심해.',
+  '문제집이 던지는 분수는 분자 ÷ 분모만큼 피해를 줘. 예를 들어 18/3은 6의 피해란다!',
+  '스페이스를 공중에서 한 번 더 누르면 더블 점프가 돼. 잘 피해서 학교까지 가 보렴!',
+  '좋아, 재석아! 등굣길을 부탁한다!'
+];
 let hurtTimer = 0;
 let toastTimer = 0;
 const projectiles = [];
@@ -358,28 +506,37 @@ function updateHUD() {
 function say(message, duration = 2.2) {
   toast.textContent = message; toastTimer = duration;
 }
-function makeFractionTexture(value) {
-  const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 256;
-  const c = canvas.getContext('2d');
-  c.fillStyle = '#fff8df'; c.beginPath(); c.roundRect(12,12,232,232,26); c.fill();
-  c.strokeStyle = '#d49b42'; c.lineWidth = 9; c.stroke();
-  c.textAlign = 'center'; c.fillStyle = '#244a55'; c.font = '900 94px sans-serif'; c.fillText(String(value * 2),128,111);
-  c.fillRect(63,128,130,8);
-  c.font = '900 86px sans-serif'; c.fillText('2',128,214);
-  const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; return texture;
+function makeFractionTexture(numerator, denominator) {
+  const canvas=document.createElement('canvas'); canvas.width=320; canvas.height=320;
+  const c=canvas.getContext('2d');
+  c.fillStyle='#fff8df'; c.beginPath(); c.roundRect(12,12,296,296,28); c.fill();
+  c.strokeStyle='#d49b42'; c.lineWidth=10; c.stroke();
+  c.textAlign='center'; c.textBaseline='middle'; c.fillStyle='#244a55';
+  c.font='900 104px sans-serif'; c.fillText(String(numerator),160,105);
+  c.fillStyle='#c18a39'; c.fillRect(70,154,180,10);
+  c.fillStyle='#244a55'; c.font='900 104px sans-serif'; c.fillText(String(denominator),160,224);
+  c.fillStyle='#6b7d76'; c.font='700 24px sans-serif'; c.fillText('분수 공격',160,278);
+  const texture=new THREE.CanvasTexture(canvas); texture.colorSpace=THREE.SRGBColorSpace; return texture;
 }
 function fireFraction() {
-  const amount = 5 + Math.floor(Math.random() * 6); // 5–10 inclusive
-  const start = enemy.root.position.clone().add(new THREE.Vector3(0, 1.0, 0));
-  const target = player.root.position.clone().add(new THREE.Vector3(0, .75, 0));
-  const dir = target.sub(start).normalize();
-  const group = new THREE.Group(); group.position.copy(start);
-  const paper = new THREE.Mesh(new THREE.BoxGeometry(.38,.42,.035), new THREE.MeshStandardMaterial({ color:0xfff5d9, roughness:.8 }));
-  paper.castShadow = true; group.add(paper);
-  const label = new THREE.Mesh(new THREE.PlaneGeometry(.32,.36), new THREE.MeshBasicMaterial({ map:makeFractionTexture(amount), transparent:true, side:THREE.DoubleSide }));
-  label.position.z = -.022; group.add(label);
+  // Random damage remains 5–10 HP. The visible improper fraction evaluates
+  // to exactly that integer, and its value is what damagePlayer receives.
+  const wantedDamage=5+Math.floor(Math.random()*6);
+  const denominator=[2,3,4][Math.floor(Math.random()*3)];
+  const numerator=wantedDamage*denominator;
+  const amount=numerator/denominator;
+  const start=enemy.root.position.clone().add(new THREE.Vector3(0,1.0,0));
+  const target=player.root.position.clone().add(new THREE.Vector3(0,.75,0));
+  const dir=target.sub(start).normalize();
+  const group=new THREE.Group(); group.position.copy(start);
+  const paper=new THREE.Mesh(new THREE.BoxGeometry(.46,.50,.045),new THREE.MeshStandardMaterial({color:0xfff5d9,roughness:.78}));
+  paper.castShadow=true; group.add(paper);
+  const rim=new THREE.Mesh(new THREE.BoxGeometry(.48,.52,.018),new THREE.MeshStandardMaterial({color:0xd5a04a,roughness:.72}));
+  rim.position.z=-.029; group.add(rim);
+  const label=new THREE.Mesh(new THREE.PlaneGeometry(.40,.44),new THREE.MeshBasicMaterial({map:makeFractionTexture(numerator,denominator),transparent:true,side:THREE.DoubleSide}));
+  label.position.z=-.041; group.add(label);
   scene.add(group);
-  projectiles.push({ group, dir, amount, speed:7.4, life:4 });
+  projectiles.push({group,dir,amount,numerator,denominator,speed:7.4,life:4});
 }
 function makeSlashEffect() {
   const slash = new THREE.Mesh(new THREE.TorusGeometry(.72,.055,8,30,Math.PI*1.12), new THREE.MeshBasicMaterial({ color:0xe9fbff, transparent:true, opacity:.9 }));
@@ -410,11 +567,11 @@ function doAttack() {
     say('조금 더 가까이 다가가서 문제집을 바라보고 공격해 봐!', 1.2);
   }
 }
-function damagePlayer(amount) {
+function damagePlayer(amount, fractionText = '') {
   if (hurtTimer > 0 || ended) return;
   playerHP = Math.max(0, playerHP - amount); hurtTimer = .32;
   updateHUD();
-  say(`분수 공격에 맞았다! -${amount} HP`, 1.15);
+  say(`${fractionText ? fractionText + ' = ' : ''}${amount} 피해! 체력 -${amount}`, 1.35);
   if (playerHP <= 0) finish(false);
 }
 function finish(won) {
@@ -429,20 +586,50 @@ function resetGame() {
   projectiles.length = 0;
   for (const e of effects) scene.remove(e.mesh);
   effects.length = 0;
-  player.root.position.set(0,0,6);
+  player.root.position.set(0,0,27);
   player.model.rotation.set(0,0,0);
-  enemy.root.position.set(0,0,-.8);
+  enemy.root.position.set(0,0,-9);
+  guardDialog.classList.add('hidden'); interactionPrompt.classList.add('hidden'); dialogueOpen=false;
   playerHP = MAX_PLAYER_HP; enemyHP = MAX_ENEMY_HP;
-  enemyShotTimer = .67; attackCooldown = 0; swingTime = 0; jumpVelocity = 0; grounded = true; hurtTimer = 0;
+  enemyShotTimer = .67; attackCooldown = 0; swingTime = 0; jumpVelocity = 0; grounded = true; jumpCount = 0; hurtTimer = 0;
   ended = false; started = true; updateHUD();
   endScreen.classList.add('hidden'); startScreen.classList.add('hidden');
   say('문제집이 살아났다! 다가가서 검으로 공격해!', 3);
 }
 
+function openGuardDialogue() {
+  dialogueOpen=true; dialogueIndex=0; guardDialogText.textContent=guardLines[dialogueIndex];
+  guardDialog.classList.remove('hidden'); interactionPrompt.classList.add('hidden');
+}
+function advanceGuardDialogue() {
+  dialogueIndex += 1;
+  if (dialogueIndex >= guardLines.length) { closeGuardDialogue(); return; }
+  guardDialogText.textContent=guardLines[dialogueIndex];
+}
+function closeGuardDialogue() {
+  dialogueOpen=false; guardDialog.classList.add('hidden');
+  say('경비실 아저씨의 조언을 기억하자!',1.8);
+}
+function updateInteraction() {
+  if (!started || ended || dialogueOpen) { interactionPrompt.classList.add('hidden'); return; }
+  const near=player.root.position.distanceTo(guardNPC.root.position) < 3.5;
+  interactionPrompt.classList.toggle('hidden',!near);
+}
+guardDialogNext.addEventListener('click',advanceGuardDialogue);
+guardDialogClose.addEventListener('click',closeGuardDialogue);
+
 window.addEventListener('keydown', (e) => {
   if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+  if (e.code === 'KeyE' && !e.repeat && started && !ended) {
+    if (dialogueOpen) advanceGuardDialogue();
+    else if (player.root.position.distanceTo(guardNPC.root.position) < 3.5) openGuardDialogue();
+  }
   keys[e.code] = true;
-  if (e.code === 'Space' && started && !ended && grounded) { jumpVelocity = 6.2; grounded = false; }
+  if (e.code === 'Space' && !e.repeat && started && !ended && !dialogueOpen && jumpCount < 2) {
+    jumpVelocity = jumpCount === 0 ? 6.2 : 5.8;
+    jumpCount += 1; grounded = false;
+    if (jumpCount === 2) say('더블 점프!',.7);
+  }
 });
 window.addEventListener('keyup', (e) => { keys[e.code] = false; });
 window.addEventListener('blur', () => { for (const k of Object.keys(keys)) keys[k] = false; });
@@ -451,8 +638,8 @@ startButton.addEventListener('click', resetGame);
 restartButton.addEventListener('click', resetGame);
 
 function updatePlayer(dt) {
-  const x = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
-  const z = (keys.KeyS || keys.ArrowDown ? 1 : 0) - (keys.KeyW || keys.ArrowUp ? 1 : 0);
+  const x = dialogueOpen ? 0 : (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
+  const z = dialogueOpen ? 0 : (keys.KeyS || keys.ArrowDown ? 1 : 0) - (keys.KeyW || keys.ArrowUp ? 1 : 0);
   const direction = new THREE.Vector3(x,0,z);
   if (direction.lengthSq() > 0) {
     direction.normalize();
@@ -462,12 +649,12 @@ function updatePlayer(dt) {
     diff = Math.atan2(Math.sin(diff), Math.cos(diff));
     player.model.rotation.y += diff * Math.min(1, dt * 13);
   }
-  player.root.position.x = THREE.MathUtils.clamp(player.root.position.x, -3.25, 3.25);
-  player.root.position.z = THREE.MathUtils.clamp(player.root.position.z, -20, 15);
+  player.root.position.x = THREE.MathUtils.clamp(player.root.position.x, -11.5, 11.5);
+  player.root.position.z = THREE.MathUtils.clamp(player.root.position.z, -39, 34);
   if (!grounded) {
     jumpVelocity -= 16 * dt;
     player.root.position.y += jumpVelocity * dt;
-    if (player.root.position.y <= 0) { player.root.position.y = 0; jumpVelocity = 0; grounded = true; }
+    if (player.root.position.y <= 0) { player.root.position.y = 0; jumpVelocity = 0; grounded = true; jumpCount = 0; }
   }
   const moving = direction.lengthSq() > 0;
   const bob = moving && grounded ? Math.sin(elapsed * 13) * .035 : Math.sin(elapsed * 2.2) * .012;
@@ -514,7 +701,7 @@ function updateProjectiles(dt) {
     p.life -= dt;
     const hitPoint = player.root.position.clone().add(new THREE.Vector3(0,.68,0));
     if (p.group.position.distanceTo(hitPoint) < .62) {
-      damagePlayer(p.amount); scene.remove(p.group); projectiles.splice(i,1); continue;
+      damagePlayer(p.amount, `${p.numerator}/${p.denominator}`); scene.remove(p.group); projectiles.splice(i,1); continue;
     }
     if (p.life <= 0) { scene.remove(p.group); projectiles.splice(i,1); }
   }
@@ -525,10 +712,12 @@ function updateEffects(dt) {
   }
 }
 function updateCamera(dt) {
-  const offset = new THREE.Vector3(7.2, 8.1, 10.5);
+  // High diagonal view: mostly behind the player, slightly offset to the right,
+  // similar to a MOBA / football broadcast camera rather than shoulder-level view.
+  const offset = new THREE.Vector3(4.8, 15.5, 12.8);
   const desired = player.root.position.clone().add(offset);
-  camera.position.lerp(desired, 1 - Math.exp(-dt * 3.2));
-  const look = player.root.position.clone().add(new THREE.Vector3(0,.85,-1.0));
+  camera.position.lerp(desired, 1 - Math.exp(-dt * 3.0));
+  const look = player.root.position.clone().add(new THREE.Vector3(0,.45,-2.0));
   camera.lookAt(look);
 }
 function resize() {
@@ -544,10 +733,12 @@ function animate() {
   const dt = Math.min(clock.getDelta(), .04);
   elapsed += dt;
   if (started && !ended) {
-    updatePlayer(dt); updateEnemy(dt); updateProjectiles(dt); updateEffects(dt);
-    if (toastTimer > 0) { toastTimer -= dt; if (toastTimer <= 0) toast.textContent = 'WASD 이동 · SPACE 점프 · 마우스 클릭 공격'; }
+    updatePlayer(dt);
+    if (!dialogueOpen) { updateEnemy(dt); updateProjectiles(dt); }
+    updateEffects(dt); updateInteraction();
+    if (toastTimer > 0) { toastTimer -= dt; if (toastTimer <= 0) toast.textContent = 'WASD 이동 · SPACE 더블 점프 · E 대화 · 클릭 공격'; }
   } else {
-    updateEffects(dt);
+    updateEffects(dt); updateInteraction();
   }
   updateCamera(dt);
   renderer.render(scene,camera);

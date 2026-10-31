@@ -33,11 +33,25 @@
     <aside class="controls-card">
       <div class="controls-title">조작 방법</div>
       <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>이동</span></div>
-      <div><kbd>SPACE</kbd><span>점프</span></div>
+      <div><kbd>SPACE</kbd><span>점프 · 공중에서 한 번 더 누르면 더블 점프</span></div>
+      <div><kbd>E</kbd><span>경비실 아저씨와 대화</span></div>
       <div><kbd>마우스 클릭</kbd><span>검 휘두르기 · 10 데미지</span></div>
     </aside>
 
+    <div id="interaction-prompt" class="interaction-prompt hidden"><kbd>E</kbd> 경비실 아저씨와 대화</div>
     <div id="toast" class="toast" aria-live="polite">문제집을 쓰러뜨리고 등굣길을 되찾자!</div>
+
+    <section id="guard-dialog" class="guard-dialog hidden" aria-live="polite">
+      <div class="guard-avatar">👮🏻‍♂️</div>
+      <div class="guard-copy">
+        <strong>경비실 아저씨</strong>
+        <p id="guard-dialog-text">어라? 문제집들이 살아나서 등굣길을 막고 있구나!</p>
+        <div class="guard-dialog-actions">
+          <button id="guard-dialog-next" class="dialog-button">다음 <span> E </span></button>
+          <button id="guard-dialog-close" class="dialog-button secondary">닫기</button>
+        </div>
+      </div>
+    </section>
 
     <section id="start-screen" class="screen-layer">
       <div class="dialog start-dialog">
@@ -50,7 +64,7 @@
           <span>📘 적 체력 <b>50</b></span>
         </div>
         <button id="start-button" class="primary-button">게임 시작</button>
-        <small>WASD 이동 · SPACE 점프 · 마우스 클릭 공격</small>
+        <small>WASD 이동 · SPACE 더블 점프 · E 대화 · 클릭 공격</small>
       </div>
     </section>
 

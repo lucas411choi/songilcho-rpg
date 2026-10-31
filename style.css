@@ -56,3 +56,23 @@ kbd { display:inline-grid; place-items:center; min-width:20px; height:21px; padd
   .dialog { padding:24px 21px 20px; }
   .dialog h1 { font-size:38px; }
 }
+
+.interaction-prompt { position:absolute; z-index:3; left:50%; bottom:86px; transform:translateX(-50%); display:flex; align-items:center; gap:9px; padding:10px 16px; border:1px solid #f8e4a9; border-radius:24px; color:#fff8df; background:#20323de8; box-shadow:0 8px 24px #14242d55; font-size:12px; font-weight:700; pointer-events:none; white-space:nowrap; }
+.interaction-prompt kbd { min-width:25px; height:25px; border-color:#f8e4a9; background:#f3d17a; color:#35484a; font-size:12px; }
+.guard-dialog { position:absolute; z-index:6; left:50%; bottom:32px; transform:translateX(-50%); display:flex; align-items:flex-start; gap:16px; width:min(620px,calc(100% - 28px)); padding:17px 19px; border:2px solid #e9d49f; border-radius:20px; color:#2b3e3d; background:linear-gradient(145deg,#fffdf3,#e6f0e8); box-shadow:0 16px 45px #12252d66; }
+.guard-avatar { flex:0 0 64px; display:grid; place-items:center; width:64px; height:64px; border-radius:17px; background:#dcebe3; font-size:37px; }
+.guard-copy { flex:1; min-width:0; }
+.guard-copy strong { display:block; margin:1px 0 5px; color:#2b695e; font:20px 'Jua',sans-serif; }
+.guard-copy p { min-height:42px; margin:0 0 12px; color:#455a54; font-size:13px; line-height:1.65; }
+.guard-dialog-actions { display:flex; justify-content:flex-end; gap:8px; }
+.dialog-button { padding:8px 15px; border:0; border-radius:9px; background:#2b806b; color:#fff; font:14px 'Jua',sans-serif; cursor:pointer; }
+.dialog-button span { margin-left:7px; padding:2px 5px; border-radius:4px; background:#ffffff30; font:11px sans-serif; }
+.dialog-button.secondary { background:#dfe8e2; color:#52645e; }
+@media (max-width:700px) {
+  .interaction-prompt { bottom:92px; font-size:10px; }
+  .guard-dialog { bottom:14px; gap:10px; padding:13px; }
+  .guard-avatar { flex-basis:48px; width:48px; height:48px; font-size:29px; }
+  .guard-copy strong { font-size:17px; }
+  .guard-copy p { font-size:11px; min-height:38px; }
+  .controls-card { max-width:205px; }
+}
